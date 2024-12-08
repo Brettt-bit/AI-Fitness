@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fitness Nutrition Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Fitness AI Class
+        class FitnessAI {
+            constructor() {
+                this.knowledgeBase = {
+                    workoutTypes: {
+                        'muscle_gain': {
+                            'beginner': [
+                                { 
+                                    name: 'Full Body Strength', 
+                                    exercises: [
+                                        { name: 'Squats', sets: 3, reps: 8, equipment: ['barbell', 'squat_rack'] },
+                                        { name: 'Bench Press', sets: 3, reps: 8, equipment: ['barbell', 'bench'] },
+                                        { name: 'Deadlifts', sets: 3, reps: 6, equipment: ['barbell'] }
+                                    ]
+                                }
+                            ]
+                        },
+                        'weight_loss': {
+                            'beginner': [
+                                { 
+                                    name: 'HIIT Cardio', 
+                                    exercises: [
+                                        { name: 'Burpees', sets: 4, reps: 15, equipment: [] },
+                                        { name: 'Mountain Climbers', sets: 4, reps: 20, equipment: [] },
+                                        { name: 'Jump Squats', sets: 3, reps: 12, equipment: [] }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    nutritionPlans: {
+                        'muscle_gain': {
+                            'high_protein': [
+                                {
+                                    name: 'Muscle Building Day',
+                                    meals: [
+                                        { 
+                                            name: 'Breakfast', 
+                                            items: ['Eggs', 'Oatmeal', 'Whey Protein Shake'],
+                                            macros: { protein: 50, carbs: 60, fats: 25 }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        'weight_loss': {
+                            'balanced': [
+                                {
+                                    name: 'Lean Cutting Day',
+                                    meals: [
+                                        { 
+                                            name: 'Breakfast', 
+                                            items: ['Greek Yogurt', 'Berries', 'Chia Seeds'],
+                                            macros: { protein: 30, carbs: 40, fats: 20 }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                };
+            }
+
+            generateWorkoutPlan(profile) {
+                const { goal, fitnessLevel, availableEquipment } = profile;
+                
+                const possibleWorkouts = this.knowledgeBase.workoutTypes[goal][fitnessLevel]
+                    .filter(workout => 
+                        workout.exercises.every(exercise => 
+                            exercise.equipment.every(eq => availableEquipment.includes(eq))
+                        )
+                    );
+
+                return possibleWorkouts.length > 0 ? possibleWorkouts[0] : null;
+            }
+
+            generateNutritionPlan(profile) {
+                const { goal } = profile;
+                
+                const nutritionPlans = this.knowledgeBase.nutritionPlans[goal];
+                const selectedPlan = nutritionPlans['high_protein'] || nutritionPlans['balanced'];
+
+                return selectedPlan[0];
+            }
+
+            analyzeProgress(currentProgress) {
+                const recommendations = [];
+
+                if (currentProgress.workoutsCompleted < 3) {
+                    recommendations.push('Increase workout frequency');
+                }
+
+                if (currentProgress.weightChange > 0 && currentProgress.goal === 'muscle_gain') {
+                    recommendations.push('Great progress in muscle gain!');
+                }
+
+                if (currentProgress.weightChange < 0 && currentProgress.goal === 'weight_loss') {
+                    recommendations.push('Consistent weight loss observed');
+                }
+
+                return recommendations;
+            }
+        }
+
+        // Main React Component
+        function FitnessNutritionTracker() {
+            const [fitnessAI] = React.useState(new FitnessAI());
+            const [profile, setProfile] = React.useState({
+                age: '',
+                goal: 'muscle_gain',
+                fitnessLevel: 'beginner',
+                availableEquipment: ['barbell', 'bench']
+            });
+
+            const [workoutPlan, setWorkoutPlan] = React.useState(null);
+            const [nutritionPlan, setNutritionPlan] = React.useState(null);
+            const [progress, setProgress] = React.useState({
+                workoutsCompleted: 0,
+                weightChange: 0,
+                goal: profile.goal
+            });
+
+            const [aiRecommendations, setAIRecommendations] = React.useState([]);
+
+            React.useEffect(() => {
+                // Generate plans when component mounts or profile changes
+                const newWorkoutPlan = fitnessAI.generateWorkoutPlan(profile);
+                const newNutritionPlan = fitnessAI.generateNutritionPlan(profile);
+
+                setWorkoutPlan(newWorkoutPlan);
+                setNutritionPlan(newNutritionPlan);
+            }, [profile]);
+
+            const trackProgress = (metric, value) => {
+                const updatedProgress = {
+                    ...progress,
+                    [metric]: value
+                };
+
+                const recommendations = fitnessAI.analyzeProgress(updatedProgress);
+                
+                setProgress(updatedProgress);
+                setAIRecommendations(recommendations);
+            };
+
+            return (
+                <div style={{fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto'}}>
+                    <h1>Fitness Nutrition Tracker</h1>
+
+                    {/* Profile Section */}
+                    <div style={{border: '1px solid #ddd', padding: '10px', marginBottom: '10px'}}>
+                        <h2>Profile</h2>
+                        <select 
+                            value={profile.goal}
+                            onChange={(e) => setProfile(prev => ({...prev, goal: e.target.value}))}
+                        >
+                            <option value="muscle_gain">Muscle Gain</option>
+                            <option value="weight_loss">Weight Loss</option>
+                        </select>
+
+                        <select 
+                            value={profile.fitnessLevel}
+                            onChange={(e) => setProfile(prev => ({...prev, fitnessLevel: e.target.value}))}
+                        >
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                        </select>
+                    </div>
+
+                    {/* Workout Plan */}
+                    {workoutPlan && (
+                        <div style={{border: '1px solid #ddd', padding: '10px', marginBottom: '10px'}}>
+                            <h2>Workout Plan</h2>
+                            <h3>{workoutPlan.name}</h3>
+                            {workoutPlan.exercises.map((exercise, index) => (
+                                <div key={index}>
+                                    <p>{exercise.name} - {exercise.sets} sets of {exercise.reps} reps</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Nutrition Plan */}
+                    {nutritionPlan && (
+                        <div style={{border: '1px solid #ddd', padding: '10px', marginBottom: '10px'}}>
+                            <h2>Nutrition Plan</h2>
+                            <h3>{nutritionPlan.name}</h3>
+                            {nutritionPlan.meals.map((meal, index) => (
+                                <div key={index}>
+                                    <h4>{meal.name}</h4>
+                                    <p>Foods: {meal.items.join(', ')}</p>
+                                    <p>
+                                        Macros - Protein: {meal.macros.protein}g, 
+                                        Carbs: {meal.macros.carbs}g, 
+                                        Fats: {meal.macros.fats}g
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Progress Tracking */}
+                    <div style={{border: '1px solid #ddd', padding: '10px'}}>
+                        <h2>Progress Tracking</h2>
+                        <input 
+                            type="number" 
+                            placeholder="Workouts Completed"
+                            onChange={(e) => trackProgress('workoutsCompleted', parseInt(e.target.value))}
+                        />
+                        <input 
+                            type="number" 
+                            placeholder="Weight Change (lbs)"
+                            onChange={(e) => trackProgress('weightChange', parseFloat(e.target.value))}
+                        />
+
+                        {aiRecommendations.length > 0 && (
+                            <div style={{backgroundColor: '#e6f3ff', padding: '10px', marginTop: '10px'}}>
+                                <h3>AI Recommendations:</h3>
+                                <ul>
+                                    {aiRecommendations.map((recommendation, index) => (
+                                        <li key={index}>{recommendation}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the component
+        ReactDOM.render(
+            <FitnessNutritionTracker />,
+            document.getElementById('root')
+        );
+    </script>
+</body>
+</html>
